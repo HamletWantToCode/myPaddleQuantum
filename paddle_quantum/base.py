@@ -19,7 +19,8 @@ The basic function of the paddle quantum.
 
 import paddle
 import paddle_quantum
-from typing import Union, Optional
+from typing import Union, Optional, List
+from paddle.fluid.framework import ParamBase
 
 DEFAULT_DEVICE = 'cpu'
 DEFAULT_SIMULATOR = paddle_quantum.Backend.StateVector
@@ -128,6 +129,17 @@ class Operator(paddle.nn.Layer):
             self.backend = backend
             for sub_layer in self.children():
                 sub_layer.backend = backend
+    
+    def _update_parameter(self, parameters: List[ParamBase]) -> None:
+        param_idx = 0
+        for layer in self.sublayers():
+            for name, param0 in layer.named_parameters():
+                assert param0.shape == parameters[param_idx].shape, f"""
+                The shape of input parameter doesn't match original parameter,
+                got {parameters[param_idx].shape}, expect {param0.shape}.
+                """
+                setattr(layer, name, parameters[param_idx])
+                param_idx += 1
 
     def forward(self, *inputs, **kwargs):
         raise NotImplementedError
